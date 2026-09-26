@@ -1,0 +1,6 @@
+google-genai>=2.25.0
+yt-dlp[default]>=2026.8.19
+deno>=2.5
+imageio-ffmpeg>=0.6.0
+numpy>=1.26
+tqdm>=4.66
