@@ -13,7 +13,7 @@ from pathlib import Path
 # Kalitni https://aistudio.google.com/apikey sahifasidan oling va
 # pastdagi qo'shtirnoq ichiga qo'ying. Bo'sh qoldirsangiz, dastur
 # GEMINI_API_KEY muhit o'zgaruvchisidan o'qiydi.
-GEMINI_API_KEY = "API Kalitinigizs"
+GEMINI_API_KEY = ""
 
 
 def get_api_key() -> str:
@@ -31,14 +31,17 @@ BIN_DIR = BASE_DIR / "bin"         # ffmpeg shu yerga avtomatik ko'chiriladi
 # 3. MODELLAR (nomlar yangilansa, faqat shu yerni o'zgartiring)
 # ─────────────────────────────────────────────────────────────
 TRANSCRIBE_MODEL = "gemini-3.5-transcribe"   # nutq -> matn (so'z vaqtlari bilan)
-TRANSLATE_MODEL = "gemini-3.8-flash"         # inglizcha -> o'zbekcha
+TRANSLATE_MODEL = "gemini-3.8-flash"         # ingliz/rus/koreys -> o'zbekcha
 TTS_MODEL = "gemini-3.8-flash-tts"           # o'zbekcha matn -> ovoz
 # Arzonroq ovoz uchun: TTS_MODEL = "gemini-3.8-flash-lite-tts"
 
 # ─────────────────────────────────────────────────────────────
 # 4. TIL
 # ─────────────────────────────────────────────────────────────
-SOURCE_LANGUAGE = "en-US"   # videodagi til (BCP-47 kodi)
+# Videodagi til: "en" (ingliz), "ru" (rus), "ko" (koreys).
+# Bu faqat standart qiymat: menyuda yoki --lang bilan har safar boshqasini tanlash mumkin.
+# Tillar ro'yxati va ularning sozlamalari: core/languages.py
+SOURCE_LANGUAGE = "en"
 
 # ─────────────────────────────────────────────────────────────
 # 5. YUKLAB OLISH (YouTube havola berilganda)

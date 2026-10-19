@@ -1,28 +1,31 @@
-"""Segmentlarni inglizchadan o'zbekchaga tarjima qilish (gemini flash, JSON chiqish)."""
+"""Segmentlarni manba tildan (ingliz, rus, koreys) o'zbekchaga tarjima qilish (gemini flash, JSON chiqish)."""
 import json
 from pathlib import Path
 
 import config
 from core.gemini_client import call_with_retry, get_client, tracker
+from core.languages import current as current_language
 
-SYSTEM_PROMPT = """You are a professional translator who localizes English video tutorials \
+SYSTEM_PROMPT = """You are a professional translator who localizes {lang} video tutorials \
 (mostly programming and IT) into Uzbek for Uzbek viewers.
 
 Rules:
 1. Translate the meaning naturally, the way an experienced Uzbek teacher would SAY it out loud. \
 Spoken, clear, friendly; never word-for-word.
-2. Use the Uzbek Latin alphabet. Write o' and g' with a plain apostrophe, and use ' for the \
+2. Use only the Uzbek Latin alphabet. Write o' and g' with a plain apostrophe, and use ' for the \
 tutuq belgisi. Write numbers as digits.
 3. Keep code, commands, file and folder names, function and variable names, URLs, keyboard \
 shortcuts, product and brand names exactly as in the original. Also keep these terms in their \
 original form: {terms}.
 4. Each segment has "max_chars": the translation will be voiced over the original timing, so \
 keep it at or under that length by phrasing concisely. Never drop important information.
-5. Remove filler words (um, uh, you know, like, so yeah) and false starts.
+5. Remove filler words ({fillers}) and false starts.
 6. Return exactly one item for every input id. Never merge, split or reorder segments. If a \
 segment contains only filler, return an empty string for it.
 7. "context" contains earlier segments that are already translated; use them only for \
-consistency of terms and tone. Do not return them."""
+consistency of terms and tone. Do not return them.
+8. Every segment has the original {lang} text in "src". Some words may be misheard by speech \
+recognition; use the surrounding context to choose the most likely meaning.{notes}"""
 
 SCHEMA = {
     "type": "object",
@@ -79,9 +82,12 @@ def _translate_batch(batch, context, title):
         "context": context,
         "segments": batch,
     }
-    prompt = ("Translate the following segments into Uzbek. Input JSON:\n"
+    lang = current_language()
+    prompt = (f"Translate the following {lang['name']} segments into Uzbek. Input JSON:\n"
               + json.dumps(payload, ensure_ascii=False))
-    system = SYSTEM_PROMPT.format(terms=", ".join(config.KEEP_TERMS))
+    system = SYSTEM_PROMPT.format(
+        lang=lang["name"], fillers=lang["fillers"], terms=", ".join(config.KEEP_TERMS),
+        notes=("\n9. " + lang["notes"]) if lang["notes"] else "")
     data = _ask(prompt, SCHEMA, system)
     return {int(it["id"]): (it.get("uz") or "").strip() for it in data.get("items", []) if "id" in it}
 
@@ -89,13 +95,13 @@ def _translate_batch(batch, context, title):
 def translate_segments(segments, workdir: Path, title: str):
     """Har bir segmentga 'uz' maydonini qo'shadi. Natija har bir paketdan keyin saqlanadi."""
     cache = workdir / "translation.json"
-    en_by_id = {s["id"]: s["en"] for s in segments}
+    src_by_id = {s["id"]: s["src"] for s in segments}
     pos = {s["id"]: i for i, s in enumerate(segments)}
     done = {}
     if cache.exists():
         saved = json.loads(cache.read_text(encoding="utf-8"))
         done = {s["id"]: s["uz"] for s in saved
-                if "uz" in s and en_by_id.get(s["id"]) == s.get("en")}
+                if "uz" in s and src_by_id.get(s["id"]) == s.get("src", s.get("en"))}
 
     todo = [s for s in segments if s["id"] not in done]
     if not todo:
@@ -109,9 +115,9 @@ def translate_segments(segments, workdir: Path, title: str):
         for s in batch_segs:
             idx = pos[s["id"]]
             nxt = segments[idx + 1]["start"] if idx + 1 < len(segments) else None
-            batch.append({"id": s["id"], "en": s["en"], "max_chars": _max_chars(s, nxt)})
+            batch.append({"id": s["id"], "src": s["src"], "max_chars": _max_chars(s, nxt)})
         first_idx = pos[batch_segs[0]["id"]]
-        context = [{"en": segments[j]["en"], "uz": done[segments[j]["id"]]}
+        context = [{"src": segments[j]["src"], "uz": done[segments[j]["id"]]}
                    for j in range(max(0, first_idx - 4), first_idx) if segments[j]["id"] in done]
 
         result = _translate_batch(batch, context, title)
@@ -136,12 +142,13 @@ def _save(segments, done, cache):
     cache.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
-def shorten(uz_text: str, en_text: str, max_chars: int) -> str:
+def shorten(uz_text: str, src_text: str, max_chars: int) -> str:
     """Ovoz vaqtga sig'masa, tarjimani ma'nosini saqlagan holda qisqartiradi."""
     prompt = (
         f"This Uzbek sentence is too long for the dubbing slot. Rewrite it in natural spoken Uzbek "
         f"(Latin script) in at most {max_chars} characters, keeping the key meaning and all code, "
-        f"names and terms unchanged.\nEnglish original: {en_text}\nCurrent Uzbek: {uz_text}"
+        f"names and terms unchanged.\n{current_language()['name']} original: {src_text}\n"
+        f"Current Uzbek: {uz_text}"
     )
     system = "You shorten Uzbek dubbing lines without losing their meaning."
     try:

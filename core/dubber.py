@@ -192,7 +192,7 @@ def make_blocks(segments):
         "start": g[0]["start"],
         "end": g[-1]["end"],
         "uz": " ".join(x["uz"].strip() for x in g),
-        "en": " ".join(x["en"] for x in g),
+        "src": " ".join(x["src"] for x in g),
     } for g in groups]
 
 
@@ -239,7 +239,7 @@ def build_dub_track(segments, workdir: Path, total: float) -> Path:
         slot = _slot(blocks, i, total)
         if dur / slot > config.MAX_SPEEDUP and not plan.get(f"b{b['id']}", {}).get("shortened"):
             target = int(len(b["uz_dub"]) * (slot * config.MAX_SPEEDUP / dur) * 0.95)
-            new = shorten(b["uz_dub"], b["en"], max(10, target))
+            new = shorten(b["uz_dub"], b["src"], max(10, target))
             if new != b["uz_dub"]:
                 b["uz_dub"] = new
                 redo.append((b, new, path_for(b)))

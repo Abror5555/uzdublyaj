@@ -27,11 +27,18 @@ def _key_from_env_file():
     return ""
 
 
+def _looks_like_key(value: str) -> bool:
+    """"API Kalitingiz" kabi namuna matnni haqiqiy kalit deb qabul qilmaslik uchun."""
+    return bool(value) and not any(ch.isspace() for ch in value) and len(value) >= 30
+
+
 def get_client():
     global _client
     if _client is None:
-        key = config.get_api_key() or _key_from_env_file()
-        if not key:
+        key = config.get_api_key()
+        if not _looks_like_key(key):
+            key = _key_from_env_file()
+        if not _looks_like_key(key):
             raise SystemExit(
                 "\nXATO: API kalit topilmadi.\n"
                 "Loyiha papkasida .env fayl yarating va unga shu qatorni yozing:\n"

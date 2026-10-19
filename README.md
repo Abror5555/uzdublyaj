@@ -1,22 +1,24 @@
 # UzDublyaj
 
-**Inglizcha video darsliklarni o'zbek tiliga o'giruvchi dastur: subtitr va ovozli dublyaj.**
+**Ingliz, rus va koreys tilidagi video darsliklarni o'zbek tiliga o'giruvchi dastur: subtitr va ovozli dublyaj.**
 
 YouTube havolasini yoki kompyuterdagi video faylni berasiz, UzDublyaj esa videoni o'zbekcha
 subtitr bilan yoki o'zbekcha ovoz bilan qaytaradi. Asosan dasturlash va IT darsliklari uchun
 yaratilgan: kod, buyruqlar va texnik atamalar tarjimada buzilmaydi.
 
-> **English:** UzDublyaj translates English video tutorials (YouTube links or local files) into
-> Uzbek — with burned-in subtitles and/or an AI voice-over — using the Google Gemini API.
+> **English:** UzDublyaj translates English, Russian and Korean video tutorials (YouTube links
+> or local files) into Uzbek — with burned-in subtitles and/or an AI voice-over — using the Google Gemini API.
 
 ---
 
 ## Imkoniyatlar
 
 - 🎬 **Manba** — YouTube havola yoki kompyuterdagi video fayl (mp4, mkv, mov va boshqalar)
-- 📝 **Subtitr** — o'zbekcha va inglizcha `.srt` fayllar, subtitr chizilgan video
+- 🌐 **Video tili** — ingliz, rus yoki koreys tili; har safar menyuda tanlanadi
+- 📝 **Subtitr** — o'zbekcha va asl tildagi `.srt` fayllar, subtitr chizilgan video
 - 🎙️ **Dublyaj** — o'zbekcha ovoz; asl ovoz fonda past ovozda qoladi
-- 💻 **IT atamalari** — `commit`, `Docker`, `router` kabi so'zlar va kod asl holida qoladi
+- 💻 **IT atamalari** — `commit`, `Docker`, `router` kabi so'zlar va kod asl holida qoladi.
+  Rus va koreys videolarida ham `коммит`, `파이썬` kabi talaffuzlar `commit`, `Python` deb yoziladi
 - 💾 **Kesh** — har bir bosqich saqlanadi: to'xtab qolsa, tugagan joyidan davom etadi va
   tayyor qism uchun qayta to'lanmaydi
 - 🚦 **Limitlarga moslashish** — Google limitlarida kutadi, zaxira modelga o'tadi va holatni
@@ -32,6 +34,7 @@ Video / YouTube havola
 Audio ──► Nutqni matnga aylantirish (gemini-3.5-transcribe, so'z vaqtlari bilan)
    ▼
 Gaplarga bo'lish ──► O'zbekchaga tarjima (gemini-3.8-flash)
+   │                 ingliz / rus / koreys → o'zbek
    ▼
  ├─► .srt subtitr ──► subtitr chizilgan video
  └─► o'zbekcha ovoz (gemini-3.8-flash-tts) ──► vaqtga moslash ──► dublyaj video
@@ -51,16 +54,17 @@ ffmpeg alohida o'rnatilmaydi, u kutubxonalar bilan birga avtomatik keladi.
 
 1. Loyihani yuklab oling:
    ```
-   git clone https://github.com/<foydalanuvchi-nomingiz>/uzdub.git
-   cd uzdub
+   git clone https://github.com/Abror5555/uzdublyaj.git
+   cd uzdublyaj
    ```
 2. **`setup.bat`** ni ishga tushiring. U `env` virtual muhitini yaratadi va barcha
    kutubxonalarni o'rnatadi.
-3. `.env.example` faylidan nusxa olib, nomini **`.env`** qiling va kalitingizni yozing:
-   ```
-   GEMINI_API_KEY=AIza...
-   ```
-   `.env` fayli GitHub'ga yuklanmaydi.
+3. API kalitni yozing. Buning ikki yo'li bor:
+   - `config.py` ni ochib, `GEMINI_API_KEY = "API Kalitinigizs"` qatoriga kalitingizni qo'ying;
+   - yoki `.env.example` dan nusxa olib, nomini **`.env`** qiling va unga `GEMINI_API_KEY=...`
+     deb yozing. Bu yo'l xavfsizroq: `.env` fayli GitHub'ga yuklanmaydi.
+
+   ⚠️ O'z kalitingiz yozilgan `config.py` ni GitHub'ga yuklamang.
 
 **Linux / macOS:**
 ```
@@ -72,19 +76,35 @@ env/bin/python main.py
 ## Ishlatish
 
 **`run.bat`** ni ishga tushiring, havola yoki fayl yo'lini kiriting (faylni oynaga sudrab
-tashlasangiz ham bo'ladi) va rejimni tanlang.
+tashlasangiz ham bo'ladi), so'ng video tilini va rejimni tanlang:
+
+```
+Video qaysi tilda?
+  1) Ingliz tili
+  2) Rus tili
+  3) Koreys tili
+```
 
 Terminal orqali:
 
 ```
 python main.py "https://www.youtube.com/watch?v=..."
-python main.py "C:\Videos\dars.mp4" --mode sub
+python main.py "https://www.youtube.com/watch?v=..." --lang ru
+python main.py "C:\Videos\dars.mp4" --lang ko --mode sub
 python main.py havola1 havola2 --mode dub
 ```
 
+| Til (`--lang`) | Video tili |
+|------|--------|
+| `en` | ingliz tili (standart) |
+| `ru` | rus tili |
+| `ko` | koreys tili |
+
+Standart tilni `config.py` dagi `SOURCE_LANGUAGE` bilan o'zgartirish mumkin.
+
 | Rejim | Natija |
 |-------|--------|
-| `srt` | faqat `.uz.srt` va `.en.srt` fayllar |
+| `srt` | faqat `.uz.srt` va asl tildagi `.en.srt` / `.ru.srt` / `.ko.srt` fayllar |
 | `sub` | o'zbekcha subtitr chizilgan video |
 | `dub` | o'zbekcha ovozli video (ichida o'chirib-yoqsa bo'ladigan subtitr ham bor) |
 | `all` | ikkala video ham (standart) |
@@ -93,7 +113,8 @@ python main.py havola1 havola2 --mode dub
 
 **Natijalar:**
 - tayyor videolar — `output/videos/`
-- `.srt` va oraliq fayllar — `output/<video nomi>/`
+- `.srt` va oraliq fayllar — `output/<video nomi>/` (rus va koreys videolari uchun
+  `output/<video nomi>/ru/` va `output/<video nomi>/ko/`, shunda tillar keshi aralashmaydi)
 
 ## Sozlamalar
 
@@ -101,6 +122,7 @@ Barcha sozlamalar `config.py` da:
 
 | Sozlama | Ma'nosi |
 |---------|---------|
+| `SOURCE_LANGUAGE` | standart video tili: `"en"`, `"ru"` yoki `"ko"` |
 | `TTS_VOICE` | ovoz: `Charon`, `Kore`, `Puck`, `Iapetus`, `Sadaltager` va boshqalar |
 | `ORIGINAL_VOLUME` | asl ovozning fondagi balandligi (`0` — butunlay o'chiq) |
 | `SUBTITLE_MODE` | `"burn"` — videoga chiziladi, `"soft"` — alohida yo'lak (tezroq) |
@@ -143,6 +165,7 @@ core/
   downloader.py       YouTube'dan yuklash (yt-dlp) yoki mahalliy fayl
   transcriber.py      nutqni matnga aylantirish, so'z vaqtlari bilan
   segmenter.py        so'zlarni gaplarga bo'lish
+  languages.py        video tillari (ingliz, rus, koreys) va ularning sozlamalari
   translator.py       o'zbekchaga tarjima va qisqartirish
   subtitles.py        .srt fayllar
   dubber.py           ovoz berish, vaqtga moslash va audio yig'ish
@@ -152,6 +175,11 @@ core/
 
 ## Cheklovlar
 
+- Rus va koreys tillarida nutqni aniqlash sifati videoning ovoziga bog'liq. Shovqinli yoki
+  musiqali videolarda ba'zi so'zlar noto'g'ri eshitilishi mumkin; tarjimon ularni kontekstdan
+  to'g'rilashga harakat qiladi.
+- Koreys tilida o'zbekcha tarjima ko'pincha asl gapdan uzunroq chiqadi, shuning uchun
+  dublyajda tezlashtirish va qisqartirish ko'proq uchrashi mumkin.
 - Sun'iy ovoz asl nutqqa to'liq mos kelmasligi mumkin: o'zbekcha matn odatda uzunroq bo'ladi,
   shuning uchun ba'zi joylar biroz tezlashtiriladi yoki qisqartiriladi.
 - Ovoz ~20 soniyalik bloklar bilan beriladi. Blok ichida nutq asl gapdan 1–2 soniya

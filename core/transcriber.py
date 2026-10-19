@@ -7,6 +7,7 @@ from pathlib import Path
 import config
 from core import ffmpeg_utils as ff
 from core.gemini_client import call_with_retry, get_client, tracker
+from core.languages import current as current_language
 
 PUNCT = ".,!?;:…"
 
@@ -117,7 +118,7 @@ def transcribe_chunk(piece: Path):
             input=[{"type": "audio", "uri": uploaded.uri, "mime_type": uploaded.mime_type or "audio/mpeg"}],
             generation_config={
                 "transcription_config": {
-                    "language_codes": [config.SOURCE_LANGUAGE],
+                    "language_codes": [current_language()["code"]],
                     "mode": {"type": "verbatim", "timestamp_granularities": ["word"]},
                 }
             },

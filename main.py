@@ -1,11 +1,18 @@
 """
-UzDub — inglizcha video darsliklarni o'zbekchaga o'giradi (subtitr va dublyaj).
+UzDublyaj — ingliz, rus va koreys tilidagi video darsliklarni o'zbekchaga o'giradi
+(subtitr va dublyaj).
 
 Ishlatish:
     python main.py                                  (menyu orqali)
-    python main.py "https://youtu.be/..."           (subtitr + dublyaj)
-    python main.py "C:\\Videos\\dars.mp4" --mode sub
+    python main.py "https://youtu.be/..."           (inglizcha video, subtitr + dublyaj)
+    python main.py "https://youtu.be/..." --lang ru (ruscha video)
+    python main.py "C:\\Videos\\dars.mp4" --lang ko --mode sub
     python main.py link1 link2 --mode dub
+
+Tillar (--lang):
+    en   - ingliz tili (standart)
+    ru   - rus tili
+    ko   - koreys tili
 
 Rejimlar:
     srt  - faqat .srt subtitr fayllari
@@ -51,6 +58,7 @@ if __name__ == "__main__":
 import config  # noqa: E402
 from core import ffmpeg_utils as ff  # noqa: E402
 from core.downloader import prepare_source, safe_name  # noqa: E402
+from core import languages  # noqa: E402
 from core.gemini_client import get_client, tracker  # noqa: E402
 from core.segmenter import build_segments  # noqa: E402
 from core.subtitles import build_cues, write_srt  # noqa: E402
@@ -64,18 +72,28 @@ MODES = {
     "4": ("all", "Subtitrli video + dublyaj (ikkalasi)"),
 }
 
+LANG_MENU = {"1": "en", "2": "ru", "3": "ko"}
+
 
 def step(n, total, text):
     print(f"\n[{n}/{total}] {text}")
 
 
-def process(inp: str, mode: str):
+def process(inp: str, mode: str, lang: str = "en"):
     t0 = time.time()
     tracker.reset()
+    lang = languages.set_current(lang)
     total_steps = {"srt": 4, "sub": 5, "dub": 5, "all": 6}[mode]
 
     step(1, total_steps, "Manba tayyorlanmoqda")
     video, title, workdir = prepare_source(inp)
+    if lang != "en":
+        # Har bir til uchun kesh alohida papkada: bitta videoni boshqa til bilan qayta
+        # ishlasangiz, eski transkripsiya va tarjima aralashib ketmaydi.
+        # Inglizcha natijalar avvalgidek asosiy papkada qoladi.
+        workdir = workdir / lang
+        workdir.mkdir(parents=True, exist_ok=True)
+    print(f"  Video tili: {languages.current()['uz']} tili")
     info = ff.probe(video)
     total = info["duration"]
     if not info["has_audio"]:
@@ -88,6 +106,9 @@ def process(inp: str, mode: str):
     seg_file = workdir / "segments.json"
     if seg_file.exists():
         segments = json.loads(seg_file.read_text(encoding="utf-8"))
+        for s in segments:  # eski versiyada asl matn "en" maydonida saqlangan
+            if "src" not in s:
+                s["src"] = s.pop("en", "")
     else:
         segments = build_segments(words)
         seg_file.write_text(json.dumps(segments, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -100,11 +121,11 @@ def process(inp: str, mode: str):
 
     step(4, total_steps, "Subtitr fayllari yozilmoqda")
     base = safe_name(title, 50)
-    en_srt = write_srt(build_cues(segments, "en"), workdir / f"{base}.en.srt")
+    src_srt = write_srt(build_cues(segments, "src"), workdir / f"{base}.{lang}.srt")
     uz_srt = write_srt(build_cues(segments, "uz"), workdir / f"{base}.uz.srt")
     videos_dir = getattr(config, "VIDEOS_DIR", config.OUTPUT_DIR / "videos")
     videos_dir.mkdir(parents=True, exist_ok=True)
-    outputs = [uz_srt, en_srt]
+    outputs = [uz_srt, src_srt]
     n = 4
 
     if mode in ("sub", "all"):
@@ -161,18 +182,25 @@ def _same_subs(uz_srt):
 
 def interactive():
     print("=" * 60)
-    print("  UzDub — inglizcha videolarni o'zbekchaga o'girish")
+    print("  UzDublyaj — videolarni o'zbekchaga o'girish (ingliz, rus, koreys)")
     print("=" * 60)
     inp = input("\nYouTube havola yoki video fayl yo'lini kiriting\n"
                 "(faylni shu oynaga sudrab tashlasangiz ham bo'ladi):\n> ").strip()
     if not inp:
-        return None, None
+        return None, None, None
+    default_lang = languages.normalize(getattr(config, "SOURCE_LANGUAGE", "en"))
+    default_key = next((k for k, v in LANG_MENU.items() if v == default_lang), "1")
+    print("\nVideo qaysi tilda?")
+    for k, code in LANG_MENU.items():
+        print(f"  {k}) {languages.LANGUAGES[code]['uz'].capitalize()} tili")
+    choice = input(f"Tanlang [{default_key}]: ").strip() or default_key
+    lang = LANG_MENU.get(choice, default_lang)
     print("\nNima tayyorlaymiz?")
     for k, (_, label) in MODES.items():
         print(f"  {k}) {label}")
     choice = input("Tanlang [4]: ").strip() or "4"
     mode = MODES.get(choice, MODES["4"])[0]
-    return [inp], mode
+    return [inp], mode, lang
 
 
 def disable_quickedit():
@@ -200,16 +228,21 @@ def main():
         pass
     disable_quickedit()
 
-    parser = argparse.ArgumentParser(description="Inglizcha videolarni o'zbekchaga tarjima qilish")
+    parser = argparse.ArgumentParser(
+        description="Ingliz, rus va koreys tilidagi videolarni o'zbekchaga tarjima qilish")
     parser.add_argument("inputs", nargs="*", help="YouTube havola(lar) yoki video fayl(lar)")
     parser.add_argument("--mode", choices=["srt", "sub", "dub", "all"], default="all")
+    parser.add_argument("--lang", choices=list(languages.LANGUAGES), default=None,
+                        help="videodagi til: en (ingliz), ru (rus), ko (koreys). "
+                             "Standart: config.py dagi SOURCE_LANGUAGE")
     parser.add_argument("--debug", action="store_true", help="xato bo'lsa to'liq ma'lumot chiqarish")
     args = parser.parse_args()
 
     if args.inputs:
         inputs, mode = args.inputs, args.mode
+        lang = args.lang or languages.normalize(getattr(config, "SOURCE_LANGUAGE", "en"))
     else:
-        inputs, mode = interactive()
+        inputs, mode, lang = interactive()
         if not inputs:
             print("Hech narsa kiritilmadi.")
             return
@@ -219,7 +252,7 @@ def main():
     for inp in inputs:
         print(f"\n>>> {inp}")
         try:
-            process(inp, mode)
+            process(inp, mode, lang)
         except KeyboardInterrupt:
             print("\nTo'xtatildi. Qayta ishga tushirsangiz, tugagan bosqichlar qaytadan bajarilmaydi.",
                   flush=True)

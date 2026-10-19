@@ -2,7 +2,7 @@
 chcp 65001 >nul
 cd /d "%~dp0"
 echo ============================================================
-echo   UzDub - o'rnatish
+echo   UzDublyaj - o'rnatish
 echo ============================================================
 
 set "PY="
@@ -33,7 +33,7 @@ env\Scripts\python.exe -m pip install -r requirements.txt || goto :end
 
 env\Scripts\python.exe -c "from core.ffmpeg_utils import ffmpeg_path; print('ffmpeg:', ffmpeg_path())"
 echo.
-echo TAYYOR! Endi .env fayliga API kalitni yozing (namuna: .env.example) va run.bat ni ishga tushiring.
+echo TAYYOR! Endi config.py faylga API kalitni yozing va run.bat ni ishga tushiring.
 
 :end
 if /i not "%~1"=="nopause" pause

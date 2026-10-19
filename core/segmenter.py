@@ -1,8 +1,8 @@
 """So'zlarni tarjima va ovoz berish uchun qulay gaplarga (segmentlarga) bo'lish."""
 import config
 
-SENTENCE_END = (".", "?", "!", "…")
-SOFT_END = (",", ";", ":")
+SENTENCE_END = (".", "?", "!", "…", "。", "？", "！")
+SOFT_END = (",", ";", ":", "，", "、")
 
 
 def build_segments(words):
@@ -18,7 +18,7 @@ def build_segments(words):
                 "id": len(segments) + 1,
                 "start": round(cur[0]["s"], 3),
                 "end": round(cur[-1]["e"], 3),
-                "en": " ".join(w["w"] for w in cur).strip(),
+                "src": " ".join(w["w"] for w in cur).strip(),
             })
             cur.clear()
 
