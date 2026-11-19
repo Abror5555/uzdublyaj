@@ -2,9 +2,9 @@
 import json
 from pathlib import Path
 
-import config
-from core.gemini_client import call_with_retry, get_client, tracker
-from core.languages import current as current_language
+from uzdublyaj import config
+from uzdublyaj.gemini_client import call_with_retry, get_client, tracker
+from uzdublyaj.languages import current as current_language
 
 SYSTEM_PROMPT = """You are a professional translator who localizes {lang} video tutorials \
 (mostly programming and IT) into Uzbek for Uzbek viewers.

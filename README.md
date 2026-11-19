@@ -42,9 +42,9 @@ Gaplarga bo'lish ──► O'zbekchaga tarjima (gemini-3.8-flash)
 
 ## Talablar
 
-- Windows 10/11 (Linux va macOS da ham ishlaydi, pastga qarang)
+- Windows 10/11, Linux yoki macOS
 - [Python](https://www.python.org/downloads/) 3.10 yoki undan yangi versiya
-  (o'rnatishda **"Add python.exe to PATH"** belgisini qo'ying)
+  (Windows'da o'rnatishda **"Add python.exe to PATH"** belgisini qo'ying)
 - Gemini API kaliti — [Google AI Studio](https://aistudio.google.com/apikey).
   Ovoz berish uchun to'lov ulangan (Tier 1 va undan yuqori) loyiha tavsiya etiladi.
 
@@ -52,31 +52,34 @@ ffmpeg alohida o'rnatilmaydi, u kutubxonalar bilan birga avtomatik keladi.
 
 ## O'rnatish
 
+```
+pip install uzdublyaj
+```
+
+Boshqa Python loyihalaringizga aralashmasligi uchun [pipx](https://pipx.pypa.io/) bilan
+o'rnatish ham qulay: `pipx install uzdublyaj`.
+
+**API kalit.** Birinchi ishga tushirishda dastur kalitni o'zi so'raydi va sozlamalar fayliga
+saqlaydi. Boshqa yo'llar: `GEMINI_API_KEY` muhit o'zgaruvchisi yoki joriy papkadagi `.env`
+fayli (`GEMINI_API_KEY=...`, namuna: [`.env.example`](.env.example)).
+
+**Windows'da repo orqali (pip'siz):**
+
 1. Loyihani yuklab oling:
    ```
    git clone https://github.com/Abror5555/uzdublyaj.git
    cd uzdublyaj
    ```
-2. **`setup.bat`** ni ishga tushiring. U `env` virtual muhitini yaratadi va barcha
-   kutubxonalarni o'rnatadi.
-3. API kalitni yozing. Buning ikki yo'li bor:
-   - `config.py` ni ochib, `GEMINI_API_KEY = "API Kalitinigizs"` qatoriga kalitingizni qo'ying;
-   - yoki `.env.example` dan nusxa olib, nomini **`.env`** qiling va unga `GEMINI_API_KEY=...`
-     deb yozing. Bu yo'l xavfsizroq: `.env` fayli GitHub'ga yuklanmaydi.
-
-   ⚠️ O'z kalitingiz yozilgan `config.py` ni GitHub'ga yuklamang.
-
-**Linux / macOS:**
-```
-python3 -m venv env
-env/bin/pip install -r requirements.txt
-env/bin/python main.py
-```
+2. **`setup.bat`** ni ishga tushiring. U `env` virtual muhitini yaratadi va dasturni
+   barcha kutubxonalari bilan o'rnatadi.
+3. **`run.bat`** ni ishga tushiring. Bu usulda natijalar avvalgidek repo ichidagi `output/`
+   papkasiga tushadi.
 
 ## Ishlatish
 
-**`run.bat`** ni ishga tushiring, havola yoki fayl yo'lini kiriting (faylni oynaga sudrab
-tashlasangiz ham bo'ladi), so'ng video tilini va rejimni tanlang:
+`uzdublyaj` buyrug'ini (yoki Windows'da **`run.bat`** ni) ishga tushiring, havola yoki fayl
+yo'lini kiriting (faylni oynaga sudrab tashlasangiz ham bo'ladi), so'ng video tilini va
+rejimni tanlang:
 
 ```
 Video qaysi tilda?
@@ -88,11 +91,13 @@ Video qaysi tilda?
 Terminal orqali:
 
 ```
-python main.py "https://www.youtube.com/watch?v=..."
-python main.py "https://www.youtube.com/watch?v=..." --lang ru
-python main.py "C:\Videos\dars.mp4" --lang ko --mode sub
-python main.py havola1 havola2 --mode dub
+uzdublyaj "https://www.youtube.com/watch?v=..."
+uzdublyaj "https://www.youtube.com/watch?v=..." --lang ru
+uzdublyaj "C:\Videos\dars.mp4" --lang ko --mode sub
+uzdublyaj havola1 havola2 --mode dub --output D:\Tarjimalar
 ```
+
+Repo ichidan ishlatsangiz, `uzdublyaj` o'rniga `python main.py` yozasiz.
 
 | Til (`--lang`) | Video tili |
 |------|--------|
@@ -100,7 +105,7 @@ python main.py havola1 havola2 --mode dub
 | `ru` | rus tili |
 | `ko` | koreys tili |
 
-Standart tilni `config.py` dagi `SOURCE_LANGUAGE` bilan o'zgartirish mumkin.
+Standart tilni sozlamalardagi `SOURCE_LANGUAGE` bilan o'zgartirish mumkin.
 
 | Rejim | Natija |
 |-------|--------|
@@ -109,16 +114,35 @@ Standart tilni `config.py` dagi `SOURCE_LANGUAGE` bilan o'zgartirish mumkin.
 | `dub` | o'zbekcha ovozli video (ichida o'chirib-yoqsa bo'ladigan subtitr ham bor) |
 | `all` | ikkala video ham (standart) |
 
-`main.py` qaysi Python bilan ochilmasin, o'zini loyihaning `env` muhitida qayta ishga tushiradi.
-
-**Natijalar:**
-- tayyor videolar — `output/videos/`
-- `.srt` va oraliq fayllar — `output/<video nomi>/` (rus va koreys videolari uchun
-  `output/<video nomi>/ru/` va `output/<video nomi>/ko/`, shunda tillar keshi aralashmaydi)
+**Natijalar** standart holatda uy papkangizdagi `UzDublyaj` papkasiga tushadi
+(Windows'da `C:\Users\<ism>\UzDublyaj`, repo orqali ishlatilganda — `output/`).
+Boshqa papka: `--output PAPKA` yoki sozlamalardagi `OUTPUT_DIR`.
+- tayyor videolar — `<natijalar>/videos/`
+- `.srt` va oraliq fayllar — `<natijalar>/<video nomi>/` (rus va koreys videolari uchun
+  `<video nomi>/ru/` va `<video nomi>/ko/`, shunda tillar keshi aralashmaydi)
 
 ## Sozlamalar
 
-Barcha sozlamalar `config.py` da:
+Sozlamalar `config.json` faylida saqlanadi. Uning joyini ko'rish (yo'q bo'lsa, namuna bilan
+yaratish) uchun:
+
+```
+uzdublyaj --config
+```
+
+Windows'da fayl `%LOCALAPPDATA%\uzdublyaj\config.json`, Linux va macOS'da
+`~/.config/uzdublyaj/config.json` da bo'ladi. Faylga kerakli sozlamalarni yozasiz:
+
+```json
+{
+  "GEMINI_API_KEY": "AIza...",
+  "SOURCE_LANGUAGE": "ru",
+  "TTS_VOICE": "Kore",
+  "SUBTITLE_MODE": "soft"
+}
+```
+
+Eng ko'p ishlatiladigan sozlamalar:
 
 | Sozlama | Ma'nosi |
 |---------|---------|
@@ -129,15 +153,26 @@ Barcha sozlamalar `config.py` da:
 | `KEEP_TERMS` | tarjima qilinmaydigan atamalar ro'yxati |
 | `MAX_VIDEO_HEIGHT` | YouTube'dan yuklanadigan sifat (`720` — tezroq) |
 | `CHUNK_MINUTES` | nutqni aniqlashda audio bo'lagi uzunligi, daqiqa |
+| `OUTPUT_DIR` | natijalar papkasi |
 
-Qo'shimcha sozlamalarni `config.py` oxiriga yozish mumkin:
+Barcha sozlamalar va ularning standart qiymatlari:
+[`src/uzdublyaj/config.py`](src/uzdublyaj/config.py). Qo'shimcha sozlamalar ham `config.json`
+ga yoziladi:
 
-```python
-DUB_BLOCK_SECONDS = 20   # nechta soniyalik gaplar bitta ovoz so'roviga yig'iladi (0 — har gap alohida)
-TTS_TIMEOUT = 180        # bitta ovoz so'rovini maksimal kutish, soniya
-FALLBACK_MODELS = {"gemini-3.8-flash": "gemini-3.5-flash",
-                   "gemini-3.8-flash-tts": "gemini-3.8-flash-lite-tts"}
+```json
+{
+  "DUB_BLOCK_SECONDS": 20,
+  "TTS_TIMEOUT": 180,
+  "FALLBACK_MODELS": {"gemini-3.8-flash": "gemini-3.5-flash",
+                      "gemini-3.8-flash-tts": "gemini-3.8-flash-lite-tts"}
+}
 ```
+
+`DUB_BLOCK_SECONDS` — nechta soniyalik gaplar bitta ovoz so'roviga yig'iladi (0 — har gap
+alohida), `TTS_TIMEOUT` — bitta ovoz so'rovini maksimal kutish (soniya).
+
+> Avval kalitni repo ichidagi `config.py` ga yozgan bo'lsangiz: endi u
+> `uzdublyaj --config` ko'rsatgan faylga yoki `.env` ga yoziladi.
 
 ## Xarajat va limitlar
 
@@ -158,10 +193,11 @@ to'xtaydi. Limitlaringizni AI Studio'dagi
 ## Loyiha tuzilmasi
 
 ```
-main.py               asosiy fayl: menyu va bosqichlar
-config.py             sozlamalar
+main.py               repo ichidan ishga tushirish (python main.py)
 setup.bat / run.bat   o'rnatish va ishga tushirish (Windows)
-core/
+src/uzdublyaj/
+  cli.py              menyu, buyruq qatori va bosqichlar
+  config.py           standart sozlamalar va config.json ni yuklash
   downloader.py       YouTube'dan yuklash (yt-dlp) yoki mahalliy fayl
   transcriber.py      nutqni matnga aylantirish, so'z vaqtlari bilan
   segmenter.py        so'zlarni gaplarga bo'lish
@@ -186,6 +222,22 @@ core/
   oldin yoki keyin ketishi mumkin, har yangi blokda esa video bilan qayta tenglashadi.
 - Uzun videolarda ovoz modellarining kunlik limiti yetmasligi mumkin. Unda ish keyingi kuni
   qolgan joyidan davom ettiriladi.
+
+## Ishlab chiqish
+
+```
+git clone https://github.com/Abror5555/uzdublyaj.git
+cd uzdublyaj
+pip install -e ".[dev]"
+pytest          # internet va API kalitsiz testlar
+```
+
+## PyPI'ga chiqarish (muallif uchun)
+
+Yangi versiya GitHub Actions orqali chiqariladi
+([`.github/workflows/publish.yml`](.github/workflows/publish.yml)):
+`src/uzdublyaj/__init__.py` dagi `__version__` ni oshiring va GitHub'da shu raqamli yangi
+Release (masalan `v0.1.1`) chiqaring — testlar o'tsa, paket PyPI'ga avtomatik yuklanadi.
 
 ## Mualliflik huquqi haqida
 

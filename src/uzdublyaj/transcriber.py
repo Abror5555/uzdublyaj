@@ -4,10 +4,10 @@ import re
 import time
 from pathlib import Path
 
-import config
-from core import ffmpeg_utils as ff
-from core.gemini_client import call_with_retry, get_client, tracker
-from core.languages import current as current_language
+from uzdublyaj import config
+from uzdublyaj import ffmpeg_utils as ff
+from uzdublyaj.gemini_client import call_with_retry, get_client, tracker
+from uzdublyaj.languages import current as current_language
 
 PUNCT = ".,!?;:…"
 

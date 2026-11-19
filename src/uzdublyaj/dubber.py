@@ -10,10 +10,10 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 
-import config
-from core import ffmpeg_utils as ff
-from core.gemini_client import DailyQuotaError, call_with_retry, get_client, set_status_handler, tracker
-from core.translator import shorten
+from uzdublyaj import config
+from uzdublyaj import ffmpeg_utils as ff
+from uzdublyaj.gemini_client import DailyQuotaError, call_with_retry, get_client, set_status_handler, tracker
+from uzdublyaj.translator import shorten
 
 SR = 24000          # Gemini TTS chiqishi: 24 kHz, mono, 16-bit
 GAP = 0.08          # gaplar orasidagi minimal pauza (s)
