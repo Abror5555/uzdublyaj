@@ -1,0 +1,19 @@
+# API kalit va shaxsiy sozlamalar hech qachon repoga tushmasin
+.env
+
+# Natijalar, ffmpeg nusxasi va virtual muhit
+output/
+bin/
+env/
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Build
+build/
+dist/
+*.egg-info/

@@ -1,18 +1,39 @@
 """
-Video Tarjimon — loyiha sozlamalari.
+UzDublyaj sozlamalari.
 
-DIQQAT: bu faylda API kalit saqlanadi. Faylni hech kimga yubormang va
-GitHub kabi ochiq joylarga yuklamang.
+Bu fayldagi qiymatlar — standart (default) sozlamalar. Ularni shu faylni
+tahrirlamasdan, foydalanuvchining sozlamalar faylida o'zgartiring:
+
+    Windows:        %LOCALAPPDATA%\\uzdublyaj\\config.json
+    Linux / macOS:  ~/.config/uzdublyaj/config.json
+
+Faylning aniq joyini `uzdublyaj --config` buyrug'i ko'rsatadi (fayl yo'q bo'lsa,
+namuna bilan yaratadi). Unga KATTA HARFLI istalgan sozlamani yozish mumkin, masalan:
+
+    {"GEMINI_API_KEY": "AIza...", "SOURCE_LANGUAGE": "ru", "TTS_VOICE": "Kore"}
+
+API kalit quyidagi tartibda qidiriladi: config.json -> GEMINI_API_KEY muhit
+o'zgaruvchisi -> joriy papkadagi .env fayli.
 """
+import json
 import os
+import sys
 from pathlib import Path
+
+
+def _app_dir() -> Path:
+    if os.name == "nt":
+        base = os.getenv("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
+        return Path(base) / "uzdublyaj"
+    base = os.getenv("XDG_CONFIG_HOME") or str(Path.home() / ".config")
+    return Path(base) / "uzdublyaj"
+
 
 # ─────────────────────────────────────────────────────────────
 # 1. API KALIT
 # ─────────────────────────────────────────────────────────────
-# Kalitni https://aistudio.google.com/apikey sahifasidan oling va
-# pastdagi qo'shtirnoq ichiga qo'ying. Bo'sh qoldirsangiz, dastur
-# GEMINI_API_KEY muhit o'zgaruvchisidan o'qiydi.
+# Kalitni https://aistudio.google.com/apikey sahifasidan oling va config.json ga
+# yozing (yoki birinchi ishga tushirishda dastur o'zi so'raydi va saqlaydi).
 GEMINI_API_KEY = ""
 
 
@@ -23,9 +44,11 @@ def get_api_key() -> str:
 # ─────────────────────────────────────────────────────────────
 # 2. PAPKALAR
 # ─────────────────────────────────────────────────────────────
-BASE_DIR = Path(__file__).resolve().parent
-OUTPUT_DIR = BASE_DIR / "output"   # natijalar shu yerga tushadi
-BIN_DIR = BASE_DIR / "bin"         # ffmpeg shu yerga avtomatik ko'chiriladi
+APP_DIR = _app_dir()                         # sozlamalar va ffmpeg shu yerda
+CONFIG_FILE = Path(os.getenv("UZDUBLYAJ_CONFIG") or (APP_DIR / "config.json"))
+# natijalar shu yerga tushadi (repo ichidagi main.py uchun standart: repo/output)
+OUTPUT_DIR = Path(os.getenv("UZDUBLYAJ_DEFAULT_OUTPUT_DIR") or (Path.home() / "UzDublyaj"))
+BIN_DIR = APP_DIR / "bin"                    # ffmpeg shu yerga avtomatik ko'chiriladi
 
 # ─────────────────────────────────────────────────────────────
 # 3. MODELLAR (nomlar yangilansa, faqat shu yerni o'zgartiring)
@@ -40,7 +63,7 @@ TTS_MODEL = "gemini-3.8-flash-tts"           # o'zbekcha matn -> ovoz
 # ─────────────────────────────────────────────────────────────
 # Videodagi til: "en" (ingliz), "ru" (rus), "ko" (koreys).
 # Bu faqat standart qiymat: menyuda yoki --lang bilan har safar boshqasini tanlash mumkin.
-# Tillar ro'yxati va ularning sozlamalari: core/languages.py
+# Tillar ro'yxati va ularning sozlamalari: uzdublyaj/languages.py
 SOURCE_LANGUAGE = "en"
 
 # ─────────────────────────────────────────────────────────────
@@ -113,3 +136,66 @@ PRICE_TEXT_IN_PER_M = 0.75                # 1 mln token
 PRICE_TEXT_OUT_PER_M = 3.75
 PRICE_TTS_IN_PER_M = 0.50
 PRICE_TTS_OUT_PER_M = 9.00                # flash-lite-tts uchun 6.00
+
+
+# ─────────────────────────────────────────────────────────────
+# 12. FOYDALANUVCHI SOZLAMALARINI YUKLASH
+# ─────────────────────────────────────────────────────────────
+_PATH_KEYS = ("OUTPUT_DIR", "BIN_DIR", "VIDEOS_DIR")
+
+
+def _read_user_settings(path: Path) -> dict:
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8-sig") or "{}")
+    except (OSError, ValueError) as exc:
+        print(f"OGOHLANTIRISH: sozlamalar fayli o'qilmadi ({path}): {exc}", file=sys.stderr)
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def load(path=None) -> None:
+    """config.json va muhit o'zgaruvchilaridagi sozlamalarni shu modulga qo'llaydi."""
+    path = Path(path) if path else CONFIG_FILE
+    module = sys.modules[__name__]
+    for key, value in _read_user_settings(path).items():
+        if not key.isupper():
+            continue
+        if key in _PATH_KEYS and value:
+            value = Path(os.path.expandvars(str(value))).expanduser()
+        setattr(module, key, value)
+    env_output = os.getenv("UZDUBLYAJ_OUTPUT_DIR")
+    if env_output:
+        module.OUTPUT_DIR = Path(env_output).expanduser()
+
+
+def save_setting(key: str, value, path=None) -> Path:
+    """Bitta sozlamani config.json ga yozadi (boshqa sozlamalar saqlanib qoladi)."""
+    path = Path(path) if path else CONFIG_FILE
+    data = _read_user_settings(path)
+    data[key] = value
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    setattr(sys.modules[__name__], key, value)
+    return path
+
+
+def ensure_config_file(path=None) -> Path:
+    """Sozlamalar fayli yo'q bo'lsa, eng ko'p o'zgartiriladigan sozlamalar bilan yaratadi."""
+    path = Path(path) if path else CONFIG_FILE
+    if not path.exists():
+        template = {
+            "GEMINI_API_KEY": "",
+            "SOURCE_LANGUAGE": SOURCE_LANGUAGE,
+            "TTS_VOICE": TTS_VOICE,
+            "SUBTITLE_MODE": SUBTITLE_MODE,
+            "ORIGINAL_VOLUME": ORIGINAL_VOLUME,
+            "MAX_VIDEO_HEIGHT": MAX_VIDEO_HEIGHT,
+        }
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(template, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
+load()

@@ -2,7 +2,7 @@
 
 Yangi til qo'shish uchun LANGUAGES ga bitta yozuv qo'shish kifoya.
 """
-import config
+from uzdublyaj import config
 
 LANGUAGES = {
     "en": {
@@ -40,7 +40,7 @@ LANGUAGES = {
     },
 }
 
-# Eski config.py da SOURCE_LANGUAGE = "en-US" kabi to'liq kod yozilgan bo'lishi mumkin
+# Sozlamalarda SOURCE_LANGUAGE = "en-US" kabi to'liq kod yozilgan bo'lishi mumkin
 _ALIASES = {
     "en-us": "en", "en-gb": "en", "english": "en", "ingliz": "en", "inglizcha": "en",
     "ru-ru": "ru", "russian": "ru", "rus": "ru", "ruscha": "ru",

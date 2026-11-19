@@ -29,11 +29,11 @@ env\Scripts\python.exe -m pip install --upgrade pip
 
 echo.
 echo [3/3] Kutubxonalar o'rnatilmoqda (bir necha daqiqa)...
-env\Scripts\python.exe -m pip install -r requirements.txt || goto :end
+env\Scripts\python.exe -m pip install -e . || goto :end
 
-env\Scripts\python.exe -c "from core.ffmpeg_utils import ffmpeg_path; print('ffmpeg:', ffmpeg_path())"
+env\Scripts\python.exe -c "from uzdublyaj.ffmpeg_utils import ffmpeg_path; print('ffmpeg:', ffmpeg_path())"
 echo.
-echo TAYYOR! Endi config.py faylga API kalitni yozing va run.bat ni ishga tushiring.
+echo TAYYOR! Endi run.bat ni ishga tushiring. Birinchi ishga tushirishda dastur API kalitni so'raydi.
 
 :end
 if /i not "%~1"=="nopause" pause

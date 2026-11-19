@@ -2,7 +2,7 @@
 import math
 from pathlib import Path
 
-import config
+from uzdublyaj import config
 
 PUNCT = (",", ".", "?", "!", ";", ":")
 

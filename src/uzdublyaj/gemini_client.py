@@ -5,8 +5,9 @@ import sys
 import threading
 import time
 import warnings
+from pathlib import Path
 
-import config
+from uzdublyaj import config
 
 # SDK har so'rovda "Interactions usage is experimental" deb ogohlantiradi — keraksiz shovqin
 warnings.filterwarnings("ignore", message=".*Interactions usage is experimental.*")
@@ -15,9 +16,9 @@ _client = None
 
 
 def _key_from_env_file():
-    """Loyiha papkasidagi .env faylidan GEMINI_API_KEY ni o'qiydi (bu fayl GitHub'ga yuklanmaydi)."""
-    path = config.BASE_DIR / ".env"
-    if not path.exists():
+    """Joriy papkadagi .env faylidan GEMINI_API_KEY ni o'qiydi (bu fayl GitHub'ga yuklanmaydi)."""
+    path = Path.cwd() / ".env"
+    if not path.is_file():
         return ""
     for line in path.read_text(encoding="utf-8-sig").splitlines():
         name, sep, value = line.strip().partition("=")
@@ -32,6 +33,22 @@ def _looks_like_key(value: str) -> bool:
     return bool(value) and not any(ch.isspace() for ch in value) and len(value) >= 30
 
 
+def _ask_and_save_key() -> str:
+    """Kalit topilmasa va dastur terminalda ishlayotgan bo'lsa, kalitni so'rab saqlaydi."""
+    if not (sys.stdin and sys.stdin.isatty()):
+        return ""
+    print("\nGemini API kalit topilmadi. Uni https://aistudio.google.com/apikey sahifasidan oling.")
+    try:
+        key = input("API kalitni shu yerga qo'ying (bekor qilish uchun Enter): ").strip()
+    except EOFError:
+        return ""
+    if not _looks_like_key(key):
+        return ""
+    path = config.save_setting("GEMINI_API_KEY", key)
+    print(f"  Kalit saqlandi: {path}")
+    return key
+
+
 def get_client():
     global _client
     if _client is None:
@@ -39,11 +56,14 @@ def get_client():
         if not _looks_like_key(key):
             key = _key_from_env_file()
         if not _looks_like_key(key):
+            key = _ask_and_save_key()
+        if not _looks_like_key(key):
             raise SystemExit(
                 "\nXATO: API kalit topilmadi.\n"
-                "Loyiha papkasida .env fayl yarating va unga shu qatorni yozing:\n"
-                "    GEMINI_API_KEY=kalitingiz\n"
-                "(yoki config.py dagi GEMINI_API_KEY = \"...\" qatoriga yozing).\n"
+                f"Kalitni sozlamalar fayliga yozing: {config.CONFIG_FILE}\n"
+                "    {\"GEMINI_API_KEY\": \"kalitingiz\"}\n"
+                "yoki GEMINI_API_KEY muhit o'zgaruvchisini o'rnating, yoki joriy papkadagi\n"
+                ".env fayliga GEMINI_API_KEY=kalitingiz qatorini yozing.\n"
             )
         from google import genai
 
@@ -81,7 +101,7 @@ def install_response_hook(client):
 _RETRY_MARKERS = ("RESOURCE_EXHAUSTED", "UNAVAILABLE", "INTERNAL", "DEADLINE", "timed out",
                   "Timeout", "ConnectError", "ReadError", "RemoteProtocolError", "overloaded")
 
-# Asosiy model band yoki limiti tugasa, shu modelga o'tiladi (config.py da o'zgartirish mumkin)
+# Asosiy model band yoki limiti tugasa, shu modelga o'tiladi (config.json da o'zgartirish mumkin)
 FALLBACK_MODELS = getattr(config, "FALLBACK_MODELS", {
     "gemini-3.8-flash": "gemini-3.5-flash",
     "gemini-3.8-flash-tts": "gemini-3.8-flash-lite-tts",
@@ -270,7 +290,7 @@ def _retry_loop(fn, args, kwargs, retries):
             if code == 429:
                 if "free_tier" in details:
                     _warn_once("free", "    ! DIQQAT: kalitingiz BEPUL (free tier) limitlarida ishlayapti. "
-                                       "Oldindan to'lov qilingan loyihaning API kalitini config.py ga qo'ying, "
+                                       "Oldindan to'lov qilingan loyihaning API kalitini sozlamalarga qo'ying, "
                                        "aks holda ish juda sekin bo'ladi.")
                 if re.search(r"per[\s_-]?day", details, re.I):
                     # Kunlik limit: kutishdan foyda yo'q, darhol zaxira modelga o'tamiz

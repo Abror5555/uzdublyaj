@@ -1,5 +1,5 @@
 """So'zlarni tarjima va ovoz berish uchun qulay gaplarga (segmentlarga) bo'lish."""
-import config
+from uzdublyaj import config
 
 SENTENCE_END = (".", "?", "!", "…", "。", "？", "！")
 SOFT_END = (",", ";", ":", "，", "、")

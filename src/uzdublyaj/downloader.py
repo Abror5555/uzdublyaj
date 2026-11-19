@@ -4,8 +4,8 @@ import shutil
 import sys
 from pathlib import Path
 
-import config
-from core.ffmpeg_utils import ffmpeg_path
+from uzdublyaj import config
+from uzdublyaj.ffmpeg_utils import ffmpeg_path
 
 
 def is_url(text: str) -> bool:
@@ -18,7 +18,8 @@ def safe_name(text: str, limit: int = 60) -> str:
 
 
 def _deno_path():
-    """yt-dlp YouTube uchun JavaScript muhitini (deno) talab qiladi; u env ichiga o'rnatiladi."""
+    """yt-dlp YouTube uchun JavaScript muhitini (deno) talab qiladi; u Python muhitiga
+    (uzdublyaj bilan birga) o'rnatiladi."""
     exe = "deno.exe" if sys.platform == "win32" else "deno"
     candidate = Path(sys.executable).parent / exe
     if candidate.exists():
@@ -59,8 +60,8 @@ def prepare_source(inp: str):
         from yt_dlp import YoutubeDL
     except ImportError as exc:
         raise RuntimeError(
-            "yt-dlp kutubxonasi topilmadi. Dasturni run.bat orqali ishga tushiring yoki "
-            "setup.bat ni qayta ishga tushirib, kutubxonalarni o'rnating.") from exc
+            "yt-dlp kutubxonasi topilmadi. Uni o'rnating: pip install --upgrade uzdublyaj "
+            "(Windows'da repo orqali ishlatsangiz, setup.bat ni qayta ishga tushiring).") from exc
 
     if inp.lower().startswith(("www.", "youtu")):
         inp = "https://" + inp

@@ -1,1 +1,0 @@
-"""Video Tarjimon asosiy modullari."""

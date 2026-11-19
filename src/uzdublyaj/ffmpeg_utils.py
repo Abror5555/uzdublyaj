@@ -5,13 +5,13 @@ import shutil
 import subprocess
 from pathlib import Path
 
-import config
+from uzdublyaj import config
 
 _FFMPEG = None
 
 
 def ffmpeg_path() -> str:
-    """ffmpeg'ni topadi. Birinchi marta imageio-ffmpeg ichidagi nusxani bin/ ga ko'chiradi."""
+    """ffmpeg'ni topadi. Birinchi marta imageio-ffmpeg ichidagi nusxani BIN_DIR ga ko'chiradi."""
     global _FFMPEG
     if _FFMPEG:
         return _FFMPEG
